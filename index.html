@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>遊戲卡池預覽</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; }
+        h1 { text-align: center; color: #333; }
+        .filters { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 16px; border: none; border-radius: 20px; background-color: #ddd; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        .filter-btn:hover, .filter-btn.active { background-color: #4CAF50; color: white; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s; display: flex; flex-direction: column; }
+        .card:hover { transform: translateY(-5px); }
+        .card img { width: 100%; height: 320px; object-fit: cover; display: block; background-color: #eee; }
+        .card-content { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; }
+        .card-category { align-self: flex-start; padding: 4px 8px; background-color: #ff9800; color: white; border-radius: 4px; font-size: 12px; margin-bottom: 10px; }
+        .card-title { margin: 0 0 10px 0; font-size: 20px; color: #222; font-weight: bold; }
+        .card-desc { font-size: 14px; color: #555; margin-bottom: 15px; flex-grow: 1; line-height: 1.5; }
+        
+        /* 數值區塊樣式 */
+        .card-stats { display: flex; justify-content: space-between; gap: 5px; border-top: 1px solid #eee; padding-top: 12px; }
+        .stat-item { background: #f0f0f0; color: #333; padding: 6px 4px; border-radius: 6px; font-size: 13px; font-weight: bold; flex: 1; text-align: center; }
+        
+        /* 特殊卡片效果樣式 */
+        .card-effect { border-top: 1px dashed #d9534f; padding-top: 12px; font-size: 14px; color: #d9534f; }
+    </style>
+</head>
+<body>
+
+    <h1>✨ 遊戲卡池預覽</h1>
+    
+    <div class="filters" id="filters">
+        <button class="filter-btn active" data-cat="all">全部</button>
+        <button class="filter-btn" data-cat="attack">攻擊</button>
+        <button class="filter-btn" data-cat="multiattack">群攻</button>
+        <button class="filter-btn" data-cat="defense">防禦</button>
+        <button class="filter-btn" data-cat="medicine">藥品</button>
+        <button class="filter-btn" data-cat="strengthen">增攻</button>
+        <button class="filter-btn" data-cat="special">特殊</button>
+    </div>
+
+    <div class="card-grid" id="cardGrid"></div>
+
+    <script>
+        let allCards = [];
+
+        fetch('cards.json')
+            .then(response => response.json())
+            .then(data => {
+                allCards = data;
+                renderCards(allCards);
+            })
+            .catch(error => {
+                console.error('讀取卡片資料失敗:', error);
+                document.getElementById('cardGrid').innerHTML = '<p style="text-align:center; width:100%;">無法讀取卡片資料，請確認 cards.json 是否已生成。</p>';
+            });
+
+        function renderCards(cards) {
+            const grid = document.getElementById('cardGrid');
+            grid.innerHTML = ''; 
+
+            cards.forEach(card => {
+                // 判斷是特殊卡片還是一般卡片，決定底部要渲染什麼
+                let bottomSection = '';
+                if (card.is_special) {
+                    bottomSection = `<div class="card-effect"><strong>✦ 特殊效果：</strong><br>${card.effect}</div>`;
+                } else {
+                    bottomSection = `
+                        <div class="card-stats">
+                            <div class="stat-item">${card.stats[0]}</div>
+                            <div class="stat-item">${card.stats[1]}</div>
+                            <div class="stat-item">${card.stats[2]}</div>
+                        </div>
+                    `;
+                }
+
+                const cardHTML = `
+                    <div class="card">
+                        <img src="${card.image}" alt="${card.name}" onerror="this.src='https://via.placeholder.com/280x320?text=圖片遺失'">
+                        <div class="card-content">
+                            <span class="card-category">${card.category_zh}</span>
+                            <h2 class="card-title">${card.name}</h2>
+                            <p class="card-desc">${card.description}</p>
+                            ${bottomSection}
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += cardHTML;
+            });
+        }
+
+        // 綁定篩選器事件
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+
+                const selectedCat = e.target.getAttribute('data-cat');
+                if (selectedCat === 'all') {
+                    renderCards(allCards);
+                } else {
+                    const filtered = allCards.filter(card => card.category_eng === selectedCat);
+                    renderCards(filtered);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
